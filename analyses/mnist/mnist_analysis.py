@@ -9,11 +9,6 @@ import tensorflow as tf
 from tensorflow import keras
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
-# gitの動作確認のための編集
-# gitの動作確認のための編集2
-
-# test1
-# test2
 
 # 再現性のためシード固定
 np.random.seed(42)
