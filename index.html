@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>【ここにあなたの名前を入力】のポートフォリオ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <h1 class="site-title">【ここにあなたの名前を入力】のポートフォリオ</h1>
+      <button type="button" class="nav-toggle" aria-label="メニューを開く" aria-expanded="false">
+        <span class="nav-toggle-bar"></span>
+        <span class="nav-toggle-bar"></span>
+        <span class="nav-toggle-bar"></span>
+      </button>
+      <nav class="nav" aria-label="メインナビゲーション">
+        <ul class="nav-list">
+          <li><a href="#profile">自己紹介</a></li>
+          <li><a href="#education">学歴</a></li>
+          <li><a href="#career">職歴</a></li>
+          <li><a href="#certifications">取得資格</a></li>
+          <li><a href="#analyses">分析</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <section id="profile" class="section section-profile">
+      <h2 class="section-title">自己紹介</h2>
+      <div class="profile-content">
+        <!-- 写真を差し替える場合は img の src をあなたの写真パスに変更してください -->
+        <div class="profile-photo-wrap">
+          <img src="" alt="【ここにプロフィール写真の説明を入力】" class="profile-photo" width="200" height="200">
+        </div>
+        <div class="profile-text">
+          <p class="profile-name">【ここに氏名を入力】</p>
+          <p class="profile-lead">【ここに一言・キャッチコピーを入力】</p>
+          <p class="profile-desc">【ここに自己紹介文を入力。経歴の要約、強み、志望動機の要約など。】</p>
+          <p class="profile-skills">【ここにスキル・得意分野を入力】</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="education" class="section">
+      <h2 class="section-title">学歴</h2>
+      <ul class="timeline-list">
+        <li class="timeline-item">
+          <span class="timeline-period">【西暦】年 【月】 ～ 【西暦】年 【月】</span>
+          <span class="timeline-label">【学校名】 【学部・学科】 【卒業/在学中】</span>
+        </li>
+        <li class="timeline-item">
+          <span class="timeline-period">【西暦】年 【月】 ～ 【西暦】年 【月】</span>
+          <span class="timeline-label">【学校名】 【学部・学科】 【卒業/在学中】</span>
+        </li>
+        <li class="timeline-item">
+          <span class="timeline-period">【西暦】年 【月】 ～ 【西暦】年 【月】</span>
+          <span class="timeline-label">【学校名】 【学部・学科】 【卒業/在学中】</span>
+        </li>
+      </ul>
+    </section>
+
+    <section id="career" class="section">
+      <h2 class="section-title">職歴</h2>
+      <ul class="timeline-list">
+        <li class="timeline-item">
+          <span class="timeline-period">【西暦】年 【月】 ～ 【西暦】年 【月】</span>
+          <span class="timeline-label">【会社名】 【役職】</span>
+          <p class="timeline-desc">【業務内容・担当範囲の説明を入力】</p>
+        </li>
+        <li class="timeline-item">
+          <span class="timeline-period">【西暦】年 【月】 ～ 【西暦】年 【月】</span>
+          <span class="timeline-label">【会社名】 【役職】</span>
+          <p class="timeline-desc">【業務内容・担当範囲の説明を入力】</p>
+        </li>
+        <li class="timeline-item">
+          <span class="timeline-period">【西暦】年 【月】 ～ 現在</span>
+          <span class="timeline-label">【会社名】 【役職】</span>
+          <p class="timeline-desc">【業務内容・担当範囲の説明を入力】</p>
+        </li>
+      </ul>
+    </section>
+
+    <section id="analyses" class="section">
+      <h2 class="section-title">分析・プロジェクト</h2>
+      <ul class="analyses-list">
+        <li class="analyses-item">
+          <a href="analyses/mnist.html">MNIST 手書き数字認識</a>
+        </li>
+      </ul>
+    </section>
+
+    <section id="certifications" class="section">
+      <h2 class="section-title">取得資格</h2>
+      <ul class="cert-list">
+        <li class="cert-item">
+          <span class="cert-year">【西暦】年 【月】</span>
+          <span class="cert-name">【資格名を入力】</span>
+        </li>
+        <li class="cert-item">
+          <span class="cert-year">【西暦】年 【月】</span>
+          <span class="cert-name">【資格名を入力】</span>
+        </li>
+        <li class="cert-item">
+          <span class="cert-year">【西暦】年 【月】</span>
+          <span class="cert-name">【資格名を入力】</span>
+        </li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p class="footer-contact">【ここに連絡先（メールアドレス等）を入力】</p>
+    <p class="footer-copy">&copy; 【西暦】 【ここにあなたの名前を入力】. All rights reserved.</p>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

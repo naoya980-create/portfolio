@@ -1,0 +1,392 @@
+/* ========================================
+   転職用ポートフォリオ - メインスタイル
+   ======================================== */
+
+:root {
+  --color-bg: #fff;
+  --color-text: #333;
+  --color-text-muted: #666;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-border: #e5e7eb;
+  --color-header-bg: #f8fafc;
+  --font-sans: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --max-width: 720px;
+  --header-height: 56px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+/* フォーカス表示（アクセシビリティ） */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ========================================
+   ヘッダー・ナビ
+   ======================================== */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: var(--color-header-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header-inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.site-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.nav-toggle-bar {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background-color: var(--color-text);
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(2) {
+  opacity: 0;
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.nav-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-list a {
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav-list a:hover {
+  color: var(--color-accent);
+}
+
+@media (max-width: 767px) {
+  .nav-toggle {
+    display: flex;
+  }
+
+  .nav {
+    width: 100%;
+    display: none;
+  }
+
+  .nav.is-open {
+    display: block;
+  }
+
+  .nav-list {
+    flex-direction: column;
+    padding: var(--space-md) 0;
+  }
+
+  .nav-list a {
+    display: block;
+    padding: var(--space-sm) 0;
+  }
+}
+
+@media (min-width: 768px) {
+  .nav {
+    display: block;
+  }
+}
+
+/* ========================================
+   メイン・セクション
+   ======================================== */
+
+.main {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.section {
+  margin-bottom: var(--space-2xl);
+}
+
+.section:last-of-type {
+  margin-bottom: 0;
+}
+
+.section-title {
+  margin: 0 0 var(--space-lg);
+  padding-bottom: var(--space-sm);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  border-bottom: 2px solid var(--color-accent);
+}
+
+/* 自己紹介 */
+.section-profile .profile-content {
+  display: grid;
+  gap: var(--space-xl);
+}
+
+@media (min-width: 600px) {
+  .section-profile .profile-content {
+    grid-template-columns: auto 1fr;
+    align-items: start;
+  }
+}
+
+.profile-photo-wrap {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: var(--color-border);
+  flex-shrink: 0;
+}
+
+.profile-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-text {
+  min-width: 0;
+}
+
+.profile-name {
+  margin: 0 0 var(--space-sm);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.profile-lead {
+  margin: 0 0 var(--space-md);
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.profile-desc,
+.profile-skills {
+  margin: 0 0 var(--space-md);
+  color: var(--color-text-muted);
+}
+
+.profile-skills:last-child {
+  margin-bottom: 0;
+}
+
+/* 学歴・職歴 タイムライン */
+.timeline-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-item {
+  padding: var(--space-lg) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.timeline-item:last-child {
+  border-bottom: none;
+}
+
+.timeline-period {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.timeline-label {
+  font-weight: 600;
+}
+
+.timeline-desc {
+  margin: var(--space-sm) 0 0;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+}
+
+/* 取得資格 */
+.cert-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cert-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+  align-items: baseline;
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cert-item:last-child {
+  border-bottom: none;
+}
+
+.cert-year {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.cert-name {
+  font-weight: 500;
+}
+
+/* 分析・プロジェクト */
+.analyses-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.analyses-item {
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.analyses-item:last-child {
+  border-bottom: none;
+}
+
+.analyses-item a {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.analyses-item a:hover {
+  text-decoration: underline;
+}
+
+/* ========================================
+   フッター
+   ======================================== */
+
+.footer {
+  margin-top: var(--space-2xl);
+  padding: var(--space-xl) var(--space-lg);
+  background-color: var(--color-header-bg);
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.footer-contact {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.9375rem;
+}
+
+.footer-contact a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.footer-contact a:hover {
+  text-decoration: underline;
+}
+
+.footer-copy {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+/* ========================================
+   印刷用
+   ======================================== */
+
+@media print {
+  .header,
+  .nav-toggle,
+  .nav,
+  .footer {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .main {
+    padding-top: 0;
+  }
+
+  .section {
+    break-inside: avoid;
+  }
+
+  a[href^="#"] {
+    color: inherit;
+    text-decoration: none;
+  }
+}
