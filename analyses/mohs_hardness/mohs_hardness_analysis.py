@@ -17,7 +17,7 @@ import seaborn as sns
 from pathlib import Path
 
 # 日本語フォント設定（文字化け防止）
-plt.rcParams["font.family"] = ["MS Gothic", "Yu Gothic UI", "Meiryo", "sans-serif"]
+plt.rcParams["font.family"] = ["MS Gothic", "Meiryo", "sans-serif"]
 import lightgbm as lgb
 from sklearn.model_selection import KFold
 from sklearn.metrics import root_mean_squared_error
@@ -186,12 +186,69 @@ COL_LABELS_JA = {
     "Hardness": "モース硬度",
 }
 
+
+def get_columns_to_drop_from_high_correlation(
+    df: pd.DataFrame, numeric_columns: pd.Index, threshold: float = 0.9
+) -> list[str]:
+    """相関係数が threshold 以上のペアについて、各ペアの一方を削除対象として返す。"""
+    df_num = df[numeric_columns].select_dtypes(include="number")
+    corr = df_num.corr()
+    to_drop = []
+    seen = set()
+    for i in range(len(corr.columns)):
+        for j in range(i + 1, len(corr.columns)):
+            if abs(corr.iloc[i, j]) >= threshold:
+                col_i, col_j = corr.columns[i], corr.columns[j]
+                # ペアの後ろの列（col_j）を削除対象とする
+                if col_j not in seen:
+                    to_drop.append(col_j)
+                    seen.add(col_j)
+    return to_drop
+
+
 # %%
-# df_artificialの散布図行列をCrystal structureで色分け
+# 相関係数 0.9 以上のペアを検出（df_mineral の数値列で相関を計算）
+# df_mineral がない場合は df_artificial を使用
+df_for_corr = df_mineral if df_mineral is not None else df_artificial
+target_col_corr = get_target_column(df_for_corr)
+numeric_cols_for_corr = (
+    df_for_corr.select_dtypes(include="number")
+    .drop(columns=[target_col_corr], errors="ignore")
+    .columns
+)
+cols_to_drop = get_columns_to_drop_from_high_correlation(
+    df_for_corr, numeric_cols_for_corr, threshold=0.9
+)
+
+if cols_to_drop:
+    print("相関係数 0.9 以上だったため削除する変数:", cols_to_drop)
+    numeric_cols_reduced = [c for c in numeric_cols if c not in cols_to_drop]
+else:
+    print("相関係数 0.9 以上のペアはありませんでした。")
+    numeric_cols_reduced = list(numeric_cols)
+
+# 相関行列の表示（削除前）
+corr_matrix = df_for_corr[numeric_cols_for_corr].corr()
+high_corr_pairs = [
+    (corr_matrix.columns[i], corr_matrix.columns[j], corr_matrix.iloc[i, j])
+    for i in range(len(corr_matrix))
+    for j in range(i + 1, len(corr_matrix))
+    if abs(corr_matrix.iloc[i, j]) >= 0.9
+]
+if high_corr_pairs:
+    print("相関係数 0.9 以上のペア:")
+    for c1, c2, r in high_corr_pairs:
+        print(f"  {c1} vs {c2}: r = {r:.4f}")
+
+# %%
+# df_artificialの散布図行列（相関0.9以上の片方を削除した変数で作成）
 if "Crystal structure" in df_artificial.columns:
-    if len(numeric_cols) > 1:
-        g = sns.pairplot(df_artificial, vars=numeric_cols, hue="Crystal structure", palette="tab10")
-        n = len(numeric_cols)
+    vars_for_pairplot = [c for c in numeric_cols_reduced if c in df_artificial.columns]
+    if len(vars_for_pairplot) > 1:
+        g = sns.pairplot(
+            df_artificial, vars=vars_for_pairplot, hue="Crystal structure", palette="tab10"
+        )
+        n = len(vars_for_pairplot)
         for i in range(n):
             for j in range(n):
                 ax = g.axes[i, j]
@@ -199,80 +256,90 @@ if "Crystal structure" in df_artificial.columns:
                 yl = ax.get_ylabel()
                 ax.set_xlabel(COL_LABELS_JA.get(xl, xl), fontsize=9, rotation=45, ha="right")
                 ax.set_ylabel(COL_LABELS_JA.get(yl, yl), fontsize=9)
-        plt.suptitle("df_artificialの散布図行列（結晶構造による色分け）", y=1.02)
+        plt.suptitle(
+            "df_artificialの散布図行列（相関0.9以上の変数を削除、結晶構造による色分け）", y=1.02
+        )
         plt.show()
     else:
         print("df_artificial: 数値カラムが1つ以下のため、散布図行列は作成できません。")
 else:
     print("df_artificialに 'crystal structure' 列がありません。")
 #%% [markdown]
-# ### 7. LightGBM による 5 分割交差検証
+# ### 7. LightGBM による 5 分割交差検証（削除前後の比較）
 # df_mineral のモース硬度を目的変数として予測モデルを学習・評価する。
+# 相関 0.9 以上の変数削除前後で LightGBM の性能を比較する。
 
 # %%
+def run_lightgbm_cv(X: pd.DataFrame, y: pd.Series, feature_names: list[str], label: str) -> list[float]:
+    """LightGBM 5 分割交差検証を実行し、各 Fold の RMSE を返す。"""
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    rmses = []
+    fold = 1
+    for train_idx, test_idx in kf.split(X):
+        X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+        y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+        lgb_train = lgb.Dataset(X_train, y_train)
+        lgb_valid = lgb.Dataset(X_test, y_test, reference=lgb_train)
+        params = {"objective": "regression", "metric": "rmse", "verbosity": -1, "seed": 42}
+        model = lgb.train(
+            params,
+            lgb_train,
+            num_boost_round=100,
+            valid_sets=[lgb_train, lgb_valid],
+            callbacks=[
+                lgb.early_stopping(stopping_rounds=10, verbose=False),
+                lgb.log_evaluation(period=0),
+            ],
+        )
+        y_pred = model.predict(X_test, num_iteration=model.best_iteration)
+        rmse = float(root_mean_squared_error(y_test, y_pred))
+        rmses.append(rmse)
+        if fold == 1:
+            importances = model.feature_importance(importance_type="gain")
+            feat_imp = sorted(zip(feature_names, importances), key=lambda t: t[1], reverse=True)
+            print(f"  [{label}] 特徴量重要度:")
+            for f, imp in feat_imp:
+                print(f"    {f}: {imp:.2f}")
+        fold += 1
+    return rmses
+
+
 if df_mineral is None:
     raise FileNotFoundError("Mineral_Dataset_Supplementary_Info.csv が必要です。LightGBM 解析をスキップする場合はこのセルを省略してください。")
 
 target_col = get_target_column(df_mineral)
 print(f"df_mineral 目的変数として使用する列: {target_col}")
 
-# 数値特徴量を説明変数とする
-features = df_mineral.select_dtypes(include="number").drop(columns=[target_col], errors="ignore").columns.tolist()
-if not features:
+# 数値特徴量（全変数）
+features_all = (
+    df_mineral.select_dtypes(include="number")
+    .drop(columns=[target_col], errors="ignore")
+    .columns.tolist()
+)
+if not features_all:
     raise ValueError("数値特徴量が見つかりません。")
 
-X = df_mineral[features]
-y = df_mineral[target_col]
+# 相関 0.9 以上で削除した後の特徴量
+features_reduced = [f for f in features_all if f not in cols_to_drop]
 
-# 欠損値補完（平均値で埋める）
-X = X.fillna(X.mean())
-y = y.fillna(y.mean())
+X_all = df_mineral[features_all].fillna(df_mineral[features_all].mean())
+X_reduced = df_mineral[features_reduced].fillna(df_mineral[features_reduced].mean())
+y = df_mineral[target_col].fillna(df_mineral[target_col].mean())
 
-kf = KFold(n_splits=5, shuffle=True, random_state=42)
-rmses = []
-fold = 1
+# --- 削除前（全変数）---
+print("\n【削除前】全変数での LightGBM 5 分割交差検証")
+rmses_all = run_lightgbm_cv(X_all, y, features_all, "削除前")
+print(f"RMSE (平均±標準偏差): {np.mean(rmses_all):.4f} ± {np.std(rmses_all):.4f}")
 
-for train_idx, test_idx in kf.split(X):
-    print(f"\n--- Fold {fold} ---")
-    X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
-    y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
-    
-    # LightGBM用データセット
-    lgb_train = lgb.Dataset(X_train, y_train)
-    lgb_valid = lgb.Dataset(X_test, y_test, reference=lgb_train)
+# --- 削除後（相関0.9以上の片方を削除）---
+print("\n【削除後】相関 0.9 以上の変数を削除した LightGBM 5 分割交差検証")
+rmses_reduced = run_lightgbm_cv(X_reduced, y, features_reduced, "削除後")
+print(f"RMSE (平均±標準偏差): {np.mean(rmses_reduced):.4f} ± {np.std(rmses_reduced):.4f}")
 
-    params = {
-        'objective': 'regression',
-        'metric': 'rmse',
-        'verbosity': -1,
-        'seed': 42,
-    }
-
-    model = lgb.train(
-    params,
-    lgb_train,
-    num_boost_round=100,
-    valid_sets=[lgb_train, lgb_valid],
-    callbacks=[
-        lgb.early_stopping(stopping_rounds=10, verbose=False),
-        lgb.log_evaluation(period=0),  # 学習ログを出さない
-    ],
-)
-
-    y_pred = model.predict(X_test, num_iteration=model.best_iteration)
-    rmse = float(root_mean_squared_error(y_test, y_pred))
-    rmses.append(rmse)
-    print(f"Fold {fold} RMSE: {rmse:.4f}")
-
-    # 最初のfoldだけ特徴量重要度を表示
-    if fold == 1:
-        importances = model.feature_importance(importance_type='gain')
-        feat_imp = sorted(zip(features, importances), key=lambda t: t[1], reverse=True)
-        print("特徴量重要度:")
-        for f, imp in feat_imp:
-            print(f"{f}: {imp:.2f}")
-
-    fold += 1
-
-print(f"\n5分割交差検証 RMSE (平均±標準偏差): {np.mean(rmses):.4f} ± {np.std(rmses):.4f}")
+# --- 比較 ---
+print("\n【比較】削除前 vs 削除後")
+print(f"  削除前: {np.mean(rmses_all):.4f} ± {np.std(rmses_all):.4f}")
+print(f"  削除後: {np.mean(rmses_reduced):.4f} ± {np.std(rmses_reduced):.4f}")
+diff = np.mean(rmses_reduced) - np.mean(rmses_all)
+print(f"  差 (削除後 - 削除前): {diff:+.4f} {'(悪化)' if diff > 0 else '(改善)' if diff < 0 else '(同程度)'}")
 # %%
