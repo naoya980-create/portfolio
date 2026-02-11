@@ -21,6 +21,8 @@ plt.rcParams["font.family"] = ["MS Gothic", "Meiryo", "sans-serif"]
 import lightgbm as lgb
 from sklearn.model_selection import KFold
 from sklearn.metrics import root_mean_squared_error
+from sklearn.linear_model import LassoCV
+from sklearn.preprocessing import StandardScaler
 
 # --- 定数 ---
 DATA_DIR = Path("data")
@@ -342,4 +344,97 @@ print(f"  削除前: {np.mean(rmses_all):.4f} ± {np.std(rmses_all):.4f}")
 print(f"  削除後: {np.mean(rmses_reduced):.4f} ± {np.std(rmses_reduced):.4f}")
 diff = np.mean(rmses_reduced) - np.mean(rmses_all)
 print(f"  差 (削除後 - 削除前): {diff:+.4f} {'(悪化)' if diff > 0 else '(改善)' if diff < 0 else '(同程度)'}")
+
+#%% [markdown]
+# ### 8. Lasso回帰による変数選択
+# 削除後の変数（相関0.9以上の片方を除いた変数）を用いて Lasso 回帰を行い、
+# 係数が 0 になる変数（削除候補）を探す。
+
+# %%
+X_lasso = X_reduced.copy()
+scaler = StandardScaler()
+X_lasso_scaled = scaler.fit_transform(X_lasso)
+
+lasso_cv = LassoCV(cv=5, random_state=42).fit(X_lasso_scaled, y)
+print(f"LassoCV 最適 alpha: {lasso_cv.alpha_:.6f}")
+
+print("\n係数一覧:")
+coef_df = pd.DataFrame(
+    {"変数": features_reduced, "係数": lasso_cv.coef_}
+).sort_values("係数", key=abs, ascending=False)
+print(coef_df.to_string(index=False))
+
+zeros = [f for f, c in zip(features_reduced, lasso_cv.coef_) if abs(c) < 1e-6]
+if zeros:
+    print(f"\n係数が 0 の変数（削除候補）: {zeros}")
+else:
+    print("\n係数が 0 の変数はありません。")
+    # 係数が非常に小さい変数も表示
+    small = [(f, c) for f, c in zip(features_reduced, lasso_cv.coef_) if abs(c) < 0.01 and abs(c) >= 1e-6]
+    if small:
+        print("係数が 0.01 未満の変数（削除を検討）:", [f for f, _ in small])
+
+#%% [markdown]
+# ### 9. density_Total 削除前後の LightGBM 性能比較
+# Lasso で係数がほぼ 0 だった density_Total を削除し、RMSE が同程度か確認する。
+
+# %%
+features_final = [f for f in features_reduced if f != "density_Total"]
+X_final = df_mineral[features_final].fillna(df_mineral[features_final].mean())
+
+print("【7変数】相関削除後の変数（density_Total 含む）")
+rmses_7 = run_lightgbm_cv(X_reduced, y, features_reduced, "7変数")
+print(f"RMSE (平均±標準偏差): {np.mean(rmses_7):.4f} ± {np.std(rmses_7):.4f}")
+
+print("\n【6変数】density_Total を削除")
+rmses_6 = run_lightgbm_cv(X_final, y, features_final, "6変数")
+print(f"RMSE (平均±標準偏差): {np.mean(rmses_6):.4f} ± {np.std(rmses_6):.4f}")
+
+print("\n【比較】7変数 vs 6変数（density_Total 削除後）")
+print(f"  7変数: {np.mean(rmses_7):.4f} ± {np.std(rmses_7):.4f}")
+print(f"  6変数: {np.mean(rmses_6):.4f} ± {np.std(rmses_6):.4f}")
+diff_density = np.mean(rmses_6) - np.mean(rmses_7)
+print(f"  差 (6変数 - 7変数): {diff_density:+.4f} {'(悪化)' if diff_density > 0 else '(改善)' if diff_density < 0 else '(同程度)'}")
+
+#%% [markdown]
+# ### 10. 6変数 LightGBM のバリデーション予測 vs 実測グラフ
+
+# %%
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+y_true_list, y_pred_list = [], []
+for train_idx, test_idx in kf.split(X_final):
+    X_train, X_test = X_final.iloc[train_idx], X_final.iloc[test_idx]
+    y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+    lgb_train = lgb.Dataset(X_train, y_train)
+    lgb_valid = lgb.Dataset(X_test, y_test, reference=lgb_train)
+    params = {"objective": "regression", "metric": "rmse", "verbosity": -1, "seed": 42}
+    model = lgb.train(
+        params,
+        lgb_train,
+        num_boost_round=100,
+        valid_sets=[lgb_train, lgb_valid],
+        callbacks=[
+            lgb.early_stopping(stopping_rounds=10, verbose=False),
+            lgb.log_evaluation(period=0),
+        ],
+    )
+    y_pred = model.predict(X_test, num_iteration=model.best_iteration)
+    y_true_list.extend(y_test.values)
+    y_pred_list.extend(y_pred)
+
+y_true_arr = np.array(y_true_list)
+y_pred_arr = np.array(y_pred_list)
+
+fig, ax = plt.subplots(figsize=(6, 6))
+ax.scatter(y_true_arr, y_pred_arr, alpha=0.7, edgecolors="black", linewidths=0.5)
+min_val = min(y_true_arr.min(), y_pred_arr.min())
+max_val = max(y_true_arr.max(), y_pred_arr.max())
+ax.plot([min_val, max_val], [min_val, max_val], "r--", lw=2, label="予測=実測")
+ax.set_xlabel("実測値（モース硬度）")
+ax.set_ylabel("予測値（モース硬度）")
+ax.set_title("6変数 LightGBM: バリデーションデータの予測 vs 実測")
+ax.legend()
+ax.set_aspect("equal")
+plt.tight_layout()
+plt.show()
 # %%
