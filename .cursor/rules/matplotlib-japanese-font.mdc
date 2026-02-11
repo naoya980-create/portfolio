@@ -1,0 +1,24 @@
+---
+description: matplotlibで日本語を表示する際のフォント設定（文字化け防止）
+globs: analyses/**/*.py
+alwaysApply: false
+---
+
+# matplotlib 日本語フォント設定
+
+matplotlib で軸ラベル・タイトル等に日本語を使用する場合は、**インポート直後に**フォント設定を行うこと。未設定だと文字化けする。
+
+## 設定例
+
+```python
+import matplotlib.pyplot as plt
+
+# 日本語フォント設定（文字化け防止）
+plt.rcParams["font.family"] = ["MS Gothic", "Yu Gothic UI", "Meiryo", "sans-serif"]
+```
+
+## ポイント
+
+- `import matplotlib.pyplot as plt` の直後、最初の `plt` 使用前に設定する
+- Windows では MS Gothic / Yu Gothic UI / Meiryo が標準で利用可能
+- pairplot、ヒストグラム、散布図など、日本語ラベルを含むあらゆるプロットで必要

@@ -15,9 +15,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
+
+# 日本語フォント設定（文字化け防止）
+plt.rcParams["font.family"] = ["MS Gothic", "Yu Gothic UI", "Meiryo", "sans-serif"]
 import lightgbm as lgb
 from sklearn.model_selection import KFold
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import root_mean_squared_error
 
 # --- 定数 ---
 DATA_DIR = Path("data")
@@ -165,12 +168,38 @@ print(df_artificial.head())
 df_mineral.head() if df_mineral is not None else None
 # %%
 numeric_cols = df_artificial.select_dtypes(include="number").columns
+
+# 列名と日本語訳の対応（3.1の表に基づく）
+COL_LABELS_JA = {
+    "allelectrons_Total": "全電子数（合計）",
+    "allelectrons_Average": "全電子数（平均）",
+    "val_e_Average": "価電子数（平均）",
+    "atomicweight_Average": "原子量（平均）",
+    "ionenergy_Average": "イオン化エネルギー（平均）",
+    "el_neg_chi_Average": "電気陰性度（平均）",
+    "R_vdw_element_Average": "ファンデルワールス半径（平均）",
+    "R_cov_element_Average": "共有結合半径（平均）",
+    "zaratio_Average": "Z/A比（平均）",
+    "density_Total": "密度（合計）",
+    "density_Average": "密度（平均）",
+    "Hardness (Mohs)": "モース硬度",
+    "Hardness": "モース硬度",
+}
+
 # %%
 # df_artificialの散布図行列をCrystal structureで色分け
 if "Crystal structure" in df_artificial.columns:
     if len(numeric_cols) > 1:
-        sns.pairplot(df_artificial, vars=numeric_cols, hue="Crystal structure", palette="tab10")
-        plt.suptitle("df_artificialの散布図行列（crystal structureによる色分け）", y=1.02)
+        g = sns.pairplot(df_artificial, vars=numeric_cols, hue="Crystal structure", palette="tab10")
+        n = len(numeric_cols)
+        for i in range(n):
+            for j in range(n):
+                ax = g.axes[i, j]
+                xl = ax.get_xlabel()
+                yl = ax.get_ylabel()
+                ax.set_xlabel(COL_LABELS_JA.get(xl, xl), fontsize=9, rotation=45, ha="right")
+                ax.set_ylabel(COL_LABELS_JA.get(yl, yl), fontsize=9)
+        plt.suptitle("df_artificialの散布図行列（結晶構造による色分け）", y=1.02)
         plt.show()
     else:
         print("df_artificial: 数値カラムが1つ以下のため、散布図行列は作成できません。")
@@ -231,7 +260,7 @@ for train_idx, test_idx in kf.split(X):
 )
 
     y_pred = model.predict(X_test, num_iteration=model.best_iteration)
-    rmse = float(mean_squared_error(y_test, y_pred, squared=False))
+    rmse = float(root_mean_squared_error(y_test, y_pred))
     rmses.append(rmse)
     print(f"Fold {fold} RMSE: {rmse:.4f}")
 
