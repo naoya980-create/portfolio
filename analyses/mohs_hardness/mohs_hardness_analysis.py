@@ -160,7 +160,7 @@ ax.set_title(f"目的変数の分布: {target_col}")
 plt.tight_layout()
 plt.show()
 #%%
-df_artificial.head()
+print(df_artificial.head())
 #%%
 df_mineral.head() if df_mineral is not None else None
 # %%
@@ -231,7 +231,7 @@ for train_idx, test_idx in kf.split(X):
 )
 
     y_pred = model.predict(X_test, num_iteration=model.best_iteration)
-    rmse = float(np.sqrt(mean_squared_error(y_test, y_pred)))
+    rmse = float(mean_squared_error(y_test, y_pred, squared=False))
     rmses.append(rmse)
     print(f"Fold {fold} RMSE: {rmse:.4f}")
 
