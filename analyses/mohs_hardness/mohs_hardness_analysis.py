@@ -90,10 +90,26 @@ if df_mineral is not None:
 # ### 3. 列情報（列名・型）
 
 # %%
-print("列名 df_artificial.columns.tolist():")
+print("【df_artificial】列名:")
 print(df_artificial.columns.tolist())
 print("\ndf_artificial.dtypes:")
 print(df_artificial.dtypes)
+if df_mineral is not None:
+    print("\n【df_mineral】列名:")
+    print(df_mineral.columns.tolist())
+    print("\ndf_mineral.dtypes:")
+    print(df_mineral.dtypes)
+
+    # df_artificial と df_mineral の列の違い
+    cols_art = set(df_artificial.columns)
+    cols_min = set(df_mineral.columns)
+    only_art = cols_art - cols_min
+    only_min = cols_min - cols_art
+    common = cols_art & cols_min
+    print("\n【列の違い】df_artificial vs df_mineral")
+    print(f"  両方に存在: {sorted(common)}")
+    print(f"  df_artificial のみ: {sorted(only_art) if only_art else 'なし'}")
+    print(f"  df_mineral のみ: {sorted(only_min) if only_min else 'なし'}")
 
 # %% [markdown]
 # ### 3.1. 列名の意味と日本語訳の対応
@@ -129,45 +145,71 @@ print(df_artificial.dtypes)
 # ### 4. 欠損値
 
 # %%
-missing = df_artificial.isna().sum()
-print("列ごとの欠損数 (df_artificial.isna().sum()):")
-print(missing[missing > 0] if missing.any() else "欠損なし")
-if not missing.any():
+missing_art = df_artificial.isna().sum()
+print("【df_artificial】列ごとの欠損数:")
+print(missing_art[missing_art > 0] if missing_art.any() else "欠損なし")
+if not missing_art.any():
     print("(全列 0 件)")
+if df_mineral is not None:
+    missing_min = df_mineral.isna().sum()
+    print("\n【df_mineral】列ごとの欠損数:")
+    print(missing_min[missing_min > 0] if missing_min.any() else "欠損なし")
+    if not missing_min.any():
+        print("(全列 0 件)")
 
 # %% [markdown]
 # ### 5. 基本統計量（describe）
 
 # %%
-print("df_artificial.describe():")
+print("【df_artificial】describe():")
 print(df_artificial.describe().to_string())
+if df_mineral is not None:
+    print("\n【df_mineral】describe():")
+    print(df_mineral.describe().to_string())
 
 # %% [markdown]
 # ### 6. 目的変数（Mohs hardness）の確認
 # Artificial_Crystals は "Hardness (Mohs)"、Mineral は "Hardness" を目的変数として使用します。
 
 # %%
-target_col = get_target_column(df_artificial)
-print("目的変数として使用する列:", repr(target_col))
-
-# %%
+target_col_art = get_target_column(df_artificial)
+print("【df_artificial】目的変数として使用する列:", repr(target_col_art))
 print("目的変数 describe():")
-print(df_artificial[target_col].describe())
+print(df_artificial[target_col_art].describe())
 print("\n目的変数 value_counts() (件数順):")
-print(df_artificial[target_col].value_counts().sort_index())
+print(df_artificial[target_col_art].value_counts().sort_index())
 
 # %%
 fig, ax = plt.subplots(figsize=(8, 4))
-df_artificial[target_col].hist(bins=min(30, df_artificial[target_col].nunique()), ax=ax, edgecolor="black", alpha=0.8)
-ax.set_xlabel(target_col)
+df_artificial[target_col_art].hist(bins=min(30, df_artificial[target_col_art].nunique()), ax=ax, edgecolor="black", alpha=0.8)
+ax.set_xlabel(target_col_art)
 ax.set_ylabel("頻度")
-ax.set_title(f"目的変数の分布: {target_col}")
+ax.set_title(f"df_artificial 目的変数の分布: {target_col_art}")
 plt.tight_layout()
 plt.show()
+
+if df_mineral is not None:
+    target_col_min = get_target_column(df_mineral)
+    print("\n【df_mineral】目的変数として使用する列:", repr(target_col_min))
+    print("目的変数 describe():")
+    print(df_mineral[target_col_min].describe())
+    print("\n目的変数 value_counts() (件数順):")
+    print(df_mineral[target_col_min].value_counts().sort_index())
+    fig, ax = plt.subplots(figsize=(8, 4))
+    df_mineral[target_col_min].hist(bins=min(30, df_mineral[target_col_min].nunique()), ax=ax, edgecolor="black", alpha=0.8)
+    ax.set_xlabel(target_col_min)
+    ax.set_ylabel("頻度")
+    ax.set_title(f"df_mineral 目的変数の分布: {target_col_min}")
+    plt.tight_layout()
+    plt.show()
+
 #%%
+print("df_artificial.head():")
 print(df_artificial.head())
 #%%
-df_mineral.head() if df_mineral is not None else None
+if df_mineral is not None:
+    print("df_mineral.head():")
+    print(df_mineral.head())
 # %%
 numeric_cols = df_artificial.select_dtypes(include="number").columns
 
@@ -243,7 +285,32 @@ if high_corr_pairs:
         print(f"  {c1} vs {c2}: r = {r:.4f}")
 
 # %%
-# df_artificialの散布図行列（相関0.9以上の片方を削除した変数で作成）
+# df_artificialの散布図行列（削除前・全変数）
+if "Crystal structure" in df_artificial.columns:
+    vars_all = [c for c in numeric_cols if c in df_artificial.columns]
+    if len(vars_all) > 1:
+        g = sns.pairplot(
+            df_artificial, vars=vars_all, hue="Crystal structure", palette="tab10"
+        )
+        n = len(vars_all)
+        for i in range(n):
+            for j in range(n):
+                ax = g.axes[i, j]
+                xl = ax.get_xlabel()
+                yl = ax.get_ylabel()
+                ax.set_xlabel(COL_LABELS_JA.get(xl, xl), fontsize=9, rotation=45, ha="right")
+                ax.set_ylabel(COL_LABELS_JA.get(yl, yl), fontsize=9)
+        plt.suptitle(
+            "df_artificialの散布図行列（削除前・全変数、結晶構造による色分け）", y=1.02
+        )
+        plt.show()
+    else:
+        print("df_artificial: 数値カラムが1つ以下のため、散布図行列は作成できません。")
+else:
+    print("df_artificialに 'crystal structure' 列がありません。")
+
+# %%
+# df_artificialの散布図行列（削除後・相関0.9以上の片方を削除した変数）
 if "Crystal structure" in df_artificial.columns:
     vars_for_pairplot = [c for c in numeric_cols_reduced if c in df_artificial.columns]
     if len(vars_for_pairplot) > 1:
